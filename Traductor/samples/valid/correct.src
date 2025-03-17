@@ -1,0 +1,5 @@
+program MiPrograma {
+    var numero: int;
+    numero = 42;
+    print(numero);
+}

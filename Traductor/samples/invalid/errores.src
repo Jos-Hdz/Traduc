@@ -1,0 +1,11 @@
+program PruebaErrores {
+    var numero: int
+    // Error sintáctico: Falta el punto y coma
+    var texto: strng;  // Error léxico: 'strng' no es un tipo válido
+    
+    numero = 5 * (3 + 2;  // Error sintáctico: Falta paréntesis de cierre
+    texto = "Hola mundo
+    
+    print(numero);  // Error léxico: Comillas no cerradas
+    print(texto;    // Error sintáctico: Falta paréntesis de cierre
+}

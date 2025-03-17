@@ -1,0 +1,12 @@
+program EjemploCompleto {
+    var nombre: string;
+    var edad: int;
+    var precio: float;
+    
+    nombre = "Ana López";
+    edad = 30;
+    precio = 99.95;
+    
+    print(nombre);
+    print(edad * 2);
+}
