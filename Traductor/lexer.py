@@ -4,72 +4,72 @@ from collections import namedtuple
 Token = namedtuple('Token', ['type', 'value', 'line', 'column'])
 
 class LexerError(Exception):
-    """Maneja errores léxicos con ubicación precisa"""
-    def __init__(self, message, line, column):
-        super().__init__(f"[LÉXICO] {message} en línea {line}, columna {column}")
-        self.line = line
-        self.column = column
+    pass
 
 class Lexer:
-    keywords = {
-        'program', 'var', 'int', 'float', 'string',
-        'if', 'else', 'print'
-    }
-    
-    # Orden crítico: tokens más específicos primero
-    tokens = [
-        ('COMMENT', r'//.*'),
-        ('STRING', r'"[^"]*"'),
-        ('NUMBER', r'\d+(\.\d*)?'),
-        ('EQ', r'=='),
-        ('ASSIGN', r'='),
-        ('COLON', r':'),
-        ('SEMI', r';'),
-        ('LPAREN', r'\('),
-        ('RPAREN', r'\)'),
-        ('LBRACE', r'\{'),
-        ('RBRACE', r'\}'),
-        ('OP', r'[+\-*/]'),  # Operadores aritméticos
-        ('ID', r'[a-zA-Z_][a-zA-Z0-9_]*'),
-        ('WHITESPACE', r'\s+')
-    ]
-    
     def __init__(self):
-        self._tokens_re = re.compile(
-            '|'.join(f'(?P<{name}>{pattern})' for name, pattern in self.tokens),
-            re.MULTILINE
-        )
-    
-    def tokenize(self, code):
-        """Convierte código fuente en tokens con tracking de posición"""
-        line_num = 1
-        line_start = 0
-        pos = 0
-        
-        while pos < len(code):
-            match = self._tokens_re.match(code, pos)
-            if match:
-                kind = match.lastgroup
-                value = match.group(kind)
-                column = match.start() - line_start
-                
-                if kind == 'WHITESPACE':
-                    if '\n' in value:
-                        line_num += value.count('\n')
-                        line_start = match.end()
-                    pos = match.end()
-                    continue
-                elif kind == 'COMMENT':
-                    pos = match.end()
-                    continue
-                
-                if kind == 'ID' and value in self.keywords:
-                    kind = value.upper()
-                
-                yield Token(kind, value, line_num, column + 1)
-                pos = match.end()
-            else:
-                char = code[pos]
-                raise LexerError(f"Carácter inválido: '{char}'", line_num, pos - line_start + 1)
-        
-        yield Token('EOF', '', line_num, pos - line_start + 1)
+        self.text = ''
+        self.pos = 0
+        self.line = 1
+        self.column = 1
+        self.token_specification = [
+            ('NUMBER',   r'\d+(\.\d*)?'),      # Enteros o flotantes
+            ('ID',       r'[A-Za-z_]\w*'),     # Identificadores
+            ('ASSIGN',   r'='),                # Asignación =
+            ('SEMI',     r';'),                # Punto y coma
+            ('LPAREN',   r'\('),               # Paréntesis izquierdo
+            ('RPAREN',   r'\)'),               # Paréntesis derecho
+            ('LBRACE',   r'\{'),               # Llave izquierda
+            ('RBRACE',   r'\}'),               # Llave derecha
+            ('COLON',    r':'),                # Dos puntos
+            ('COMMA',    r','),                # Coma
+            ('OP',       r'[+\-*/]'),          # Operadores aritméticos
+            ('NEWLINE',  r'\n'),               # Nueva línea
+            ('SKIP',     r'[ \t]+'),           # Espacios y tabs (se ignoran)
+            ('STRING',   r'"[^"\n]*"'),        # Cadenas entre comillas dobles
+            ('MISMATCH', r'.'),                # Cualquier otro carácter no válido
+        ]
+        self.keywords = {
+            'var': 'VAR',
+            'int': 'INT',
+            'float': 'FLOAT',
+            'string': 'STRING',
+            'print': 'PRINT',
+            'program': 'PROGRAM',
+        }
+        self.regex = re.compile('|'.join(
+            f'(?P<{name}>{pattern})' for name, pattern in self.token_specification
+        ))
+
+    def tokenize(self, text):
+        self.text = text
+        self.pos = 0
+        self.line = 1
+        self.column = 1
+
+        for mo in self.regex.finditer(self.text):
+            kind = mo.lastgroup
+            raw_value = mo.group()
+            value = raw_value
+
+            if kind == 'NUMBER':
+                if '.' in value:
+                    value = float(value)
+                else:
+                    value = int(value)
+            elif kind == 'ID':
+                kind = self.keywords.get(value, 'ID')
+            elif kind == 'NEWLINE':
+                self.line += 1
+                self.column = 1
+                continue
+            elif kind == 'SKIP':
+                self.column += len(value)
+                continue
+            elif kind == 'MISMATCH':
+                raise LexerError(f'Error léxico: Carácter inesperado {value!r} en línea {self.line}, columna {self.column}')
+
+            yield Token(kind, value, self.line, self.column)
+            self.column += len(raw_value)
+
+        yield Token('EOF', '', self.line, self.column)

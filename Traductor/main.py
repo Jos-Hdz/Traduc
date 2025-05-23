@@ -1,5 +1,5 @@
 from lexer import Lexer, LexerError
-from parser import Parser, ParserError
+from parser import Parser
 import sys
 
 def main():
@@ -8,29 +8,33 @@ def main():
         print("Uso: python main.py <archivo_fuente>")
         print("Ejemplo: python main.py ejemplos/operaciones.src")
         return
-    
+
     try:
-        with open(sys.argv[1]) as f:
+        with open(sys.argv[1], encoding='utf-8') as f:
             codigo = f.read()
     except FileNotFoundError:
         print(f"Error: Archivo '{sys.argv[1]}' no encontrado")
         return
-    
+
     # Análisis léxico
-    lexer = Lexer()
+    lexer = Lexer()  # ✅ Sin argumentos
     try:
-        tokens = list(lexer.tokenize(codigo))
+        tokens = list(lexer.tokenize(codigo))  # ✅ Aquí se pasa el texto fuente
     except LexerError as e:
-        print(f"\n{str(e)}")
+        print(f"\n[ERROR LÉXICO]: {str(e)}")
         return
-    
+
     # Análisis sintáctico
-    try:
-        parser = Parser(tokens)
-        parser.parse()
+    parser = Parser(tokens)
+    parser.parse()
+
+    # Mostrar errores encontrados
+    if parser.errors:
+        print("\n[ERRORES ENCONTRADOS]:")
+        for error in parser.errors:
+            print(f"- {error}")
+    else:
         print("\n[ÉXITO] Análisis completado correctamente")
-    except ParserError as e:
-        print(f"\n{str(e)}")
 
 if __name__ == "__main__":
     main()
